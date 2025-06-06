@@ -1,8 +1,6 @@
-package main;
+package detector;
 
 
-import detector.CloneDetector;
-import detector.ICloneDetector;
 import model.ClonePair;
 import model.ICodeBlock;
 import model.SourceFile;
@@ -16,6 +14,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class Main {
     static IFileReader reader = new FileReader();
@@ -25,17 +25,17 @@ public class Main {
 
     public static void main(String[] args) {
         String sourceDirectory = args[0], resultFile = args[1];
+        boolean append = args.length > 2 && Objects.equals(args[2], "-ap");
 
-        List<SourceFile> files = reader.Read(sourceDirectory);
-        Logger.log("There are " + files.size() + " files in total");
+        Stream<SourceFile> files = reader.Read(sourceDirectory);
 
-        List<ICodeBlock> blocks = files.stream().flatMap(file ->
+        List<ICodeBlock> blocks = files.flatMap(file ->
                 splitter.Split(file).stream()
         ).toList();
         Logger.log("There are " + blocks.size() + " blocks in total");
 
-        List<ClonePair> clones = detector.getClonePairs(blocks);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile))) {
+        Stream<ClonePair> clones = detector.getClonePairs(blocks);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile, append))) {
 
             clones.forEach(clone -> {
                         try {

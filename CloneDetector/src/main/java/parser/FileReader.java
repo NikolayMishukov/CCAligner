@@ -8,35 +8,33 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class FileReader implements IFileReader {
 
     @Override
-    public List<SourceFile> Read(String sourceDirectory) {
-        ArrayList<SourceFile> data = new ArrayList<>();
+    public Stream<SourceFile> Read(String sourceDirectory) {
         Path startDir = Paths.get(sourceDirectory);
 
         try (Stream<Path> stream = Files.walk(startDir)) {
-            stream
+            return stream
                     .filter(Files::isRegularFile)
                     .filter(name -> name.toString().endsWith(".java"))
-                    .forEach(name -> {
+                    .toList().stream()
+                    .flatMap(name -> {
                                 try {
                                     String content = String.join("\n", Files.readAllLines(name));
-                                    data.add(new SourceFile(startDir.relativize(name), content));
-                                    Logger.log("File " + name + " successfully read");
+                                    return Stream.of(new SourceFile(startDir.relativize(name), content));
                                 } catch (java.io.IOException e) {
                                     Logger.log("Failed to read " + name + " : " + e.getMessage());
+                                    return Stream.empty();
                                 }
                             }
                     );
         } catch (IOException e) {
-            System.err.println("Error walking through files: " + e.getMessage());
+            Logger.log("Error walking through files: " + e.getMessage());
+            return Stream.empty();
         }
-        return data;
     }
 }
 

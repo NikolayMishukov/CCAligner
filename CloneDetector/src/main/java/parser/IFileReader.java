@@ -3,8 +3,8 @@ package parser;
 
 import model.SourceFile;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 public interface IFileReader {
-    List<SourceFile> Read(String sourceDirectory);
+    Stream<SourceFile> Read(String sourceDirectory);
 }

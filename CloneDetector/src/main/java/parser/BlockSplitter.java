@@ -10,6 +10,7 @@ import utils.*;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class BlockSplitter implements IBlockSplitter {
     static JavaParser parser = new JavaParser();
@@ -21,9 +22,8 @@ public class BlockSplitter implements IBlockSplitter {
         Path path = file.getPath();
         CompilationUnit cu = parser.parse(file.getCode()).getResult().orElseThrow();
         normalizer.normalize(cu);
-        ArrayList<RawCodeBlock> rawBlocks = new ArrayList<>();
-        cu.getTypes().forEach(type ->
-            type.getMethods().forEach(method -> {
+        Stream<RawCodeBlock> rawBlocks = cu.getTypes().stream().flatMap(type ->
+            type.getMethods().stream().flatMap(method -> {
                 try {
                     BlockStmt body = method.getBody().orElseThrow();
                     int begin = method.getBegin().orElseThrow().line;
@@ -34,13 +34,13 @@ public class BlockSplitter implements IBlockSplitter {
                             begin,
                             end
                     );
-                    rawBlocks.add(new RawCodeBlock(body, info));
+                    return Stream.of(new RawCodeBlock(body, info));
                 } catch (NoSuchElementException e) {
-                    Logger.log("Exception in method processing: " + e.getMessage());
+                    return Stream.empty();
                 }
             })
         );
-        return rawBlocks.stream().map(rawBlock ->
+        return rawBlocks.map(rawBlock ->
                 (ICodeBlock) new CodeBlock(
                         Arrays.stream(rawBlock.getCode().split("\n")).map(hash::getHash).toList(),
                         rawBlock.getInfo()
